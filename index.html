@@ -5823,7 +5823,8 @@ body.is-recording .wc-rec-btn,
     nodes.forEach(function(el,i){ el.textContent = i===1 ? n+' watching' : String(n); });
   }
   function ping(){
-    fetch('/api/viewers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})}).then(r=>r.json()).then(d=>paint(d.count||1)).catch(function(){paint(1);});}).then(function(d){paint(d.count||1);}).catch(function(){});
+    fetch('/api/viewers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})})
+      .then(function(r){return r.json();}).then(function(d){paint(d.count||1);}).catch(function(){});
   }
   ping();
   setInterval(ping,15000);
