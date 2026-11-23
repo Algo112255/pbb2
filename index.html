@@ -1412,19 +1412,20 @@ body.pseudo-fs-active .bottom-nav { display: none !important; }
 .mv-msg[hidden] { display: none; }
 .mv-msg.mv-msg-waiting {
     overflow: hidden;
-    background:
-        radial-gradient(circle at 50% 38%, rgba(156, 126, 255, 0.18), transparent 42%),
-        linear-gradient(145deg, rgba(20, 14, 35, 0.96), rgba(8, 8, 12, 0.98));
+    background-color: #05070b;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
 }
 .mv-waiting-card {
     position: relative;
     width: min(360px, 90%);
     padding: 18px 18px 16px;
-    border: 1px solid rgba(190, 170, 255, 0.26);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 18px;
-    background: rgba(17, 13, 29, 0.82);
-    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.42), 0 0 34px rgba(156, 126, 255, 0.12);
-    backdrop-filter: blur(10px);
+    background: rgba(4, 6, 10, 0.78);
+    box-shadow: 0 16px 42px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
     animation: mvWaitingCardIn 0.45s ease both;
 }
 .mv-waiting-head {
@@ -1435,20 +1436,10 @@ body.pseudo-fs-active .bottom-nav { display: none !important; }
     margin-bottom: 8px;
 }
 .mv-waiting-art {
-    display: block;
-    width: 76px;
-    height: 44px;
-    flex: 0 0 76px;
-    object-fit: cover;
-    border-radius: 9px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 5px 16px rgba(0, 0, 0, 0.35);
+    display: none;
 }
 .mv-waiting-bunny {
-    display: inline-block;
-    font-size: 30px;
-    filter: drop-shadow(0 5px 10px rgba(156, 126, 255, 0.32));
-    animation: mvBunnyHop 2.8s ease-in-out infinite;
+    display: none;
 }
 .mv-waiting-title {
     color: #fafafa;
@@ -5127,10 +5118,10 @@ body.is-recording .wc-rec-btn,
       "Hang tight, the live feed may return anytime."
     ];
     var copy = messages[Math.floor(Date.now() / 12000) % messages.length];
-    var visual = Number(id) === 1
-      ? '<img class="mv-waiting-art" src="' + PBB_OFFLINE_ART + '" alt="PBB iWant stream artwork">'
-      : '<span class="mv-waiting-bunny" aria-hidden="true">🐰</span>';
+    var visual = "";
     msg.classList.add("mv-msg-waiting");
+    msg.style.backgroundImage =
+      'linear-gradient(rgba(3, 5, 10, 0.52), rgba(3, 5, 10, 0.78)), url("' + PBB_OFFLINE_ART + '")';
     msg.hidden = false;
     msg.setAttribute("aria-live", "polite");
     msg.innerHTML =
@@ -5152,6 +5143,7 @@ body.is-recording .wc-rec-btn,
     if (!t || !msg) return;
     t.classList.remove("is-waiting");
     msg.classList.remove("mv-msg-waiting");
+    msg.style.backgroundImage = "";
     msg.removeAttribute("aria-live");
     msg.innerHTML = "";
     msg.hidden = true;
