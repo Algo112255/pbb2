@@ -6218,7 +6218,7 @@ body.is-recording .wc-rec-btn,
     nodes.forEach(function(el,i){ el.textContent = i===1 ? n+' watching' : String(n); });
   }
   function ping(){
-    fetch('/api/viewers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})})
+    fetch((window.PBB_RELAY||'')+'/api/viewers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})})
       .then(function(r){return r.json();}).then(function(d){paint(d.count||1);}).catch(function(){});
   }
   ping();
@@ -6275,7 +6275,7 @@ body.is-recording .wc-rec-btn,
   var name=localStorage.getItem('gc_name')||('Guest '+Math.floor(100+Math.random()*900));localStorage.setItem('gc_name',name);
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function paint(msgs){list.innerHTML=(msgs||[]).map(function(m){return '<div class="gcMsg"><b>'+esc(m.name)+'</b>'+esc(m.text)+'<small>'+new Date(m.ts).toLocaleTimeString()+'</small></div>';}).join('');list.scrollTop=list.scrollHeight;}
-  function poll(){fetch('/api/chat',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){paint(d.messages||[]);}).catch(function(){});}
+  function poll(){fetch((window.PBB_RELAY||'')+'/api/chat',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){paint(d.messages||[]);}).catch(function(){});}
   poll();setInterval(poll,5000);
   fab.onclick=function(){panel.classList.toggle('open');if(panel.classList.contains('open'))poll();};
   var lastSend=0;
@@ -6283,7 +6283,7 @@ body.is-recording .wc-rec-btn,
     e.preventDefault();var text=input.value.trim();if(!text)return;
     var now=Date.now();if(now-lastSend<4000){hint.textContent='Wait 4 seconds before sending again.';return;}
     lastSend=now;hint.textContent='';
-    fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,name:name,sid:sid})}).then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});}).then(function(x){
+    fetch((window.PBB_RELAY||'')+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,name:name,sid:sid})}).then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});}).then(function(x){
       if(x.ok){input.value='';hint.textContent='';poll();}else{hint.textContent=x.d.error||'Could not send.';}
     }).catch(function(){hint.textContent='Could not send.';});
   };
