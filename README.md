@@ -12,10 +12,9 @@ performs that handshake, decodes the ClearKey pair out of the session token, and
 re-serves the stream under a stable path:
 
 ```
-GET /api/main                      -> { cam, mpd, kid, key, expiresAt }
-GET /api/all | /api/ext | /api/din -> same for the other cameras
-GET /pbb/<cam>/manifest.mpd        -> live MPD, session refreshed automatically
-GET /pbb/<cam>/<segment>           -> init + media segments
+GET /api/iwant                     -> { mpd, content, url, expiresAt }
+GET /pbb/iwant/manifest.mpd        -> signed iWant MPD, re-issued every 30s
+GET /pbb/iwant/<segment>           -> init + media with the MPD's hdntl token
 ```
 
 ## Run
@@ -34,7 +33,7 @@ pointed at `http://127.0.0.1:8787` for the stream.
 
 | Tab        | Site key | Notes                                  |
 | ---------- | -------- | -------------------------------------- |
-| PBB Live   | `main`   | 1080p broadcast                        |
+| PBB Live   | `iwant`  | iWant `/player/<id>` feed, 1080p, auto re-signed |
 | Extra      | `all`    | House / daily show                     |
 | Extra Task | `ext`    | Task room                              |
 | 2 View     | both     | Main + whichever Extra source is active |
