@@ -83,7 +83,7 @@ function decodeToken(tokenB64, nonce) {
 }
 
 const sessions = new Map(); // cam -> { dir, kid, key, expiresAt }
-let iwantFeed = null; // { url, expiresAt, content }
+const iwantFeeds = new Map(); // content id -> { url, segQuery, expiresAt, content }
 
 async function fetchIwant(content) {
   const id = content || IWANT_CONTENT;
@@ -131,18 +131,21 @@ async function fetchIwant(content) {
   return { url: mpd, content: id, expiresAt: Date.now() + 30000 };
 }
 
-async function iwant(force) {
-  if (!force && iwantFeed && Date.now() < iwantFeed.expiresAt) return iwantFeed;
-  iwantFeed = await fetchIwant(iwantFeed && iwantFeed.content);
-  return iwantFeed;
+async function iwant(content, force) {
+  const key = content || IWANT_CONTENT;
+  const hit = iwantFeeds.get(key);
+  if (!force && hit && Date.now() < hit.expiresAt) return hit;
+  const feed = await fetchIwant(key);
+  iwantFeeds.set(key, feed);
+  return feed;
 }
 
 /* The signed query has to ride along on every segment request, not just the
  * MPD — that's how the CDN authorises init and media files. */
-async function iwantUpstream(relPath) {
+async function iwantUpstream(content, relPath) {
   let lastErr;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const feed = await iwant(attempt > 0);
+    const feed = await iwant(content, attempt > 0);
     const signed = new URL(feed.url);
     let url, isManifest = relPath === "manifest.mpd";
     if (isManifest) {
@@ -168,7 +171,7 @@ async function iwantUpstream(relPath) {
       const m = text.match(/[?&]hdntl=[^"<>\s]+/);
       if (m) {
         feed.segQuery = "?" + m[0].replace(/^[?&]/, "");
-        iwantFeed = feed;
+        iwantFeeds.set(content || IWANT_CONTENT, feed);
       }
       return new Response(text, {
         status: res.status,
@@ -177,7 +180,7 @@ async function iwantUpstream(relPath) {
     }
     if (res.status === 403 || res.status === 404) {
       lastErr = new Error(`iwant upstream ${res.status}`);
-      iwantFeed = null;
+      iwantFeeds.delete(content || IWANT_CONTENT);
       continue;
     }
     return res;
@@ -408,10 +411,11 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === "/api/iwant") {
-      const feed = await iwant(false);
+      const content = url.searchParams.get("content") || IWANT_CONTENT;
+      const feed = await iwant(content, false);
       return json(res, 200, {
         cam: "iwant",
-        mpd: "/pbb/iwant/manifest.mpd",
+        mpd: `/pbb/iwant/${content}/manifest.mpd`,
         content: feed.content,
         url: feed.url,
         segQuery: feed.segQuery,
@@ -419,11 +423,18 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    const iwantStream = pathname.match(/^\/pbb\/iwant\/(.+)$/);
+    const iwantStream = pathname.match(/^\/pbb\/iwant\/([0-9a-f-]{36})\/(.+)$/);
     if (iwantStream) {
-      const rest = iwantStream[1];
+      const rest = iwantStream[2];
       if (rest.includes("..")) return notFound(res);
-      return pipe(res, await iwantUpstream(rest));
+      return pipe(res, await iwantUpstream(iwantStream[1], rest));
+    }
+
+    const iwantLegacy = pathname.match(/^\/pbb\/iwant\/(.+)$/);
+    if (iwantLegacy) {
+      const rest = iwantLegacy[1];
+      if (rest.includes("..")) return notFound(res);
+      return pipe(res, await iwantUpstream(IWANT_CONTENT, rest));
     }
 
     const stream = pathname.match(/^\/pbb\/(all|ext|din|main)\/(.+)$/);
@@ -449,7 +460,7 @@ server.listen(PORT, () => {
   Promise.allSettled([
     session("main", false),
     session("ext", false),
-    iwant(false),
+    iwant(IWANT_CONTENT, false),
   ]).then((r) => {
     for (const s of r) if (s.status === "rejected") console.log("warm:", s.reason.message);
   });
