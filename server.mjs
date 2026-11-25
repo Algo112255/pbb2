@@ -140,7 +140,6 @@ async function iwant(content, force) {
   const hit = iwantFeeds.get(key);
   if (!force && hit && Date.now() < hit.expiresAt) return hit;
   const fresh = await fetchIwant(key);
-  const hit = iwantFeeds.get(key);
   if (hit && hit.segQuery) fresh.segQuery = hit.segQuery; // segment token is longer-lived
   iwantFeeds.set(key, fresh);
   return fresh;
