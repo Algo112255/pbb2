@@ -4171,17 +4171,11 @@ body.is-recording .wc-rec-btn,
   global.PBB_MAIN_OFFLINE_ART = PBB_MAIN_OFFLINE_ART;
   global.PBB_EXTRA_OFFLINE_ART = PBB_EXTRA_OFFLINE_ART;
 
-  // Use the relay only while the page is running locally. A public page must
-  // never call 127.0.0.1, because that triggers the browser's local-device
-  // access prompt and would point at a visitor's own computer.
-  var isLocalPage = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
-  var PBB_RELAY = isLocalPage
-    ? ((location.port === "8787" && /^https?:$/.test(location.protocol))
-      ? ""
-      : "http://127.0.0.1:8787")
-    : "";
+  // Same origin when the page is served by server.mjs (port 8787); otherwise
+  // the relay on this machine. Pages serves static files only — the browser
+  // is allowed to reach http://127.0.0.1 even from an https origin.
+  var PBB_RELAY = location.port === "8787" ? "" : "http://127.0.0.1:8787";
   global.PBB_RELAY = PBB_RELAY;
-  global.PBB_HAS_RELAY = isLocalPage;
 
   PBB_CAMERAS = [
     {
@@ -4988,7 +4982,7 @@ body.is-recording .wc-rec-btn,
   /* Auto-start when a mount point with data-pbb-stream is present. */
   document.addEventListener("DOMContentLoaded", function () {
     var mount = document.querySelector("[data-pbb-stream]");
-    if (!mount || !isLocalPage) return;
+    if (!mount) return;
     var cam = Number(mount.getAttribute("data-camera") || 1);
     var player = new PBBStream({ mount: mount });
     player.start(cam).catch(function (e) { player.log("ERROR " + e.message); });
@@ -5167,10 +5161,6 @@ body.is-recording .wc-rec-btn,
       'linear-gradient(rgba(3, 5, 10, 0.52), rgba(3, 5, 10, 0.78)), url("' + offlineArt + '")';
     msg.hidden = false;
     msg.setAttribute("aria-live", "polite");
-    if (!window.PBB_HAS_RELAY) {
-      msg.textContent = "";
-      return;
-    }
     msg.innerHTML =
       '<div class="mv-waiting-card">' +
         '<div class="mv-waiting-head">' + visual +
@@ -5256,10 +5246,6 @@ body.is-recording .wc-rec-btn,
 
   function startCamera(id) {
     clearCameraRetry(id);
-    if (!window.PBB_HAS_RELAY) {
-      showWaitingState(id);
-      return Promise.resolve();
-    }
     var cam = (PBB_CAMERAS || []).filter(function (c) { return c.id === Number(id); })[0];
     if (cam && cam.sources) {
       var src = cam.sources[cam.srcIndex || 0];
@@ -5305,7 +5291,7 @@ body.is-recording .wc-rec-btn,
    * goes stale, so poll the relay and restart only the affected camera. */
   var streamKeyWatch = null;
   function watchStreamKeys() {
-    if (!window.PBB_HAS_RELAY || streamKeyWatch) return;
+    if (streamKeyWatch) return;
     streamKeyWatch = setInterval(function () {
       [1, 2].forEach(function (id) {
         var p = players.get(id);
@@ -6222,7 +6208,6 @@ body.is-recording .wc-rec-btn,
 </script>
 <script>
 (function(){
-  if (!window.PBB_HAS_RELAY) return;
   var id = localStorage.getItem('pbb_vid');
   if(!id){ id='v'+Math.random().toString(36).slice(2,10); localStorage.setItem('pbb_vid',id); }
   var nodes=[document.getElementById('header-viewer-count'),document.getElementById('viewersInline'),document.getElementById('viewers')].filter(Boolean);
@@ -6284,10 +6269,6 @@ body.is-recording .wc-rec-btn,
 (function(){
   var fab=document.getElementById('gcFab'),panel=document.getElementById('gcPanel'),list=document.getElementById('gcList'),form=document.getElementById('gcForm'),input=document.getElementById('gcInput'),hint=document.getElementById('gcHint');
   if(!fab||!panel||!form)return;
-  if (!window.PBB_HAS_RELAY) {
-    fab.style.display = "none";
-    return;
-  }
   var sid=localStorage.getItem('gc_sid');if(!sid){sid='g'+Math.random().toString(36).slice(2,12);localStorage.setItem('gc_sid',sid);}
   var name=localStorage.getItem('gc_name')||('Guest '+Math.floor(100+Math.random()*900));localStorage.setItem('gc_name',name);
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
