@@ -4029,9 +4029,8 @@ body.is-recording .wc-rec-btn,
             <div class="wall-tile" data-id="2">
               <video playsinline webkit-playsinline muted autoplay></video>
               <button type="button" class="mv-audio" data-audio="2" title="Listen to PBB Extra audio" aria-label="Toggle PBB Extra audio"><i class="fas fa-volume-xmark"></i></button>
-              <div class="mv-label"><span class="dot live"></span><span class="mv-label-text">PBB Extra</span></div>
               <div class="mv-msg">Loading…</div>
-            <div class="mv-schedule" aria-label="PBB Extra streaming schedule"><span class="mv-schedule-dot" aria-hidden="true"></span><span class="mv-schedule-text">PBB Extra · streams daily at 12:00 PM</span></div>
+            <div class="mv-schedule" aria-label="PBB Extra streaming schedule"><span class="mv-schedule-dot" aria-hidden="true"></span><span>PBB Extra · streams daily at 12:00 PM</span></div>
             </div>
 
           </div>
@@ -4095,12 +4094,8 @@ body.is-recording .wc-rec-btn,
       <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg><span>PBB Live</span>
     </button>
 
-    <button type="button" class="nav-btn" data-cam="2" data-src="0" aria-label="PBB Extra">
+    <button type="button" class="nav-btn" data-cam="2" aria-label="PBB Extra">
       <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18"/><circle cx="15" cy="12" r="1"/></svg><span>Extra</span>
-    </button>
-
-    <button type="button" class="nav-btn" data-cam="2" data-src="1" aria-label="Extra Task">
-      <svg class="nav-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9h10M7 13h6"/></svg><span>Extra Task</span>
     </button>
 
     <button type="button" class="nav-btn" data-cam="duo" aria-label="2 View">
@@ -4162,59 +4157,28 @@ body.is-recording .wc-rec-btn,
   ];
 
   // Keep the public player focused on the two currently supplied feeds.
-  // Both feeds are minted per session by pbbcollab.live, which rejects any
-  // request that does not carry its own Referer. server.mjs performs that
-  // handshake locally and re-serves the stream at /pbb/<cam>/…, so this file
-  // only ever needs the relay base — never an expiring signed URL.
+  // The signed Akamai MPD URLs and matching AES keys come from the stream
+  // configuration supplied for this deployment.
   var PBB_MAIN_OFFLINE_ART = "https://od2-image-api.abs-cbn.com/prod/editorImage/1786681427857PBB.JPG";
   var PBB_EXTRA_OFFLINE_ART = "https://od2-image-api.abs-cbn.com/prod/editorImage/1795405194341921850392_2379347246145028_708427678846576651_n%20%281%29.jpeg";
   global.PBB_MAIN_OFFLINE_ART = PBB_MAIN_OFFLINE_ART;
   global.PBB_EXTRA_OFFLINE_ART = PBB_EXTRA_OFFLINE_ART;
-
-  // Same origin when the page is served by server.mjs (port 8787); otherwise
-  // the relay on this machine. Pages serves static files only — the browser
-  // is allowed to reach http://127.0.0.1 even from an https origin.
-  // Paste the deployed Worker URL here to drop localhost entirely.
-  var PBB_RELAY_URL = "";
-  var PBB_RELAY = PBB_RELAY_URL || (location.port === "8787" ? "" : "http://127.0.0.1:8787");
-  global.PBB_RELAY = PBB_RELAY;
-
+  var PBB_EXTRA_SOURCE = "https://absp-live.akamaized.net/dash/live/2099522/pbbcollaballaccesslivestream/manifest.mpd?hdntl=exp=1795517725~acl=%2f*~id=b64da822-dfa4-485c-8b5c-b61f3f6c413b~data=hdntl~hmac=c4da6e7a3521b205d2597ac69bebf55647d4d0358283dc9899847481a1cb752a&app_bundle=&app_name=iwant&app_store_url=&channel_name=PBBHouseTalk&conparid=2fe8d783-93f7-4712-ac3f-917a6866d5e8&contentType=Live&content_id=2fe8d783-93f7-4712-ac3f-917a6866d5e8&content_livestream=1&content_producer_name=ABS-CBN&coppa=0&did=1d3e3f27-f7b5-5517-86c6-2b86dae31e5b&dnt=0&dur=50400&gdpr=0&gdpr_consent=0&genre=Reality&ifa_type=PPID&language=en&lmt=0&network_name=ABS-CBN&pmxd=%7B%7BPOD_MAX_DUR_MILLIS%7D%7D&rating=PG&sid=b64da822-dfa4-485c-8b5c-b61f3f6c413b&title=PBBHouseTalk&ua=Mozilla%2F5.0%20%28X11%3B%20Linux%20x86_64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like Gecko%29%20Chrome%2F144.0.0.0%20Safari%2F537.36&url=https%3A%2F%2Fwww.iwanttfc.com%2Fcontent%2F2fe8d783-93f7-4712-ac3f-917a6866d5e8&us_privacy=1---&sentinel=awake";
+  var PBB_EXTRA_PROXY = "https://pbbextra.pages.dev/proxy/manifest.mpd?url=" + encodeURIComponent(PBB_EXTRA_SOURCE);
   PBB_CAMERAS = [
     {
       id: 1,
       name: "PBB Live",
-      mpdUrl: PBB_RELAY + "/pbb/iwant/manifest.mpd",
-      keyId: "1044e7ece2d741bcafe80d8613da104f",
-      key: "f5e17f169ff05ea40c5d3f065f523942",
-      cam: "iwant"
+      mpdUrl: "https://absp-live.akamaized.net/dash/live/2099522/pinoybigbrothercollabedition30live/manifest.mpd?hdntl=exp=1795488538~acl=%2f*~id=bb38549f-e046-4aca-972c-a91f1b17030a~data=hdntl~hmac=b578d5e8d2016e2f753bfb8249d64bfa9fec286323fcdd5f43b1c45f30b0a5da&app_bundle=&app_name=iwant&app_store_url=&channel_name=PinoyBigBrotherCollabEdition30LIVE&conparid=54bbba0c-ada2-41ec-ba51-05e6de5e8305&contentType=Live&content_id=54bbba0c-ada2-41ec-ba51-05e6de5e8305&content_livestream=1&content_producer_name=ABS-CBN&coppa=0&did=48d408c3-70fc-5612-b99b-2b2340b83ea4&dnt=0&dur=0&gdpr=0&gdpr_consent=0&genre=Reality&ifa_type=PPID&language=fil&lmt=0&network_name=ABS-CBN&pmxd=%7B%7BPOD_MAX_DUR_MILLIS%7D%7D&rating=PG&sid=bb38549f-e046-4aca-972c-a91f1b17030a&title=PinoyBigBrotherCollabEdition30LIVE&ua=Mozilla%2F5.0%20%28Windows%20NT%2010.0%3B%20Win64%3B%20x64%29%20AppleWebKit%2F537.36%20%28KHTML%2C%20like%20Gecko%29%20Chrome%2F157.0.0.0%20Safari%2F537.36&url=https%3A%2F%2Fwww.iwanttfc.com%2Fcontent%2F54bbba0c-ada2-41ec-ba51-05e6de5e8305&us_privacy=1---&sentinel=awake",
+      keyId: "044e7ece2d741bcafe80d8613da104f",
+      key: "f5e17f169ff05ea40c5d3f065f523942"
     },
     {
       id: 2,
       name: "PBB Extra",
-      // Second tile carries two feeds; srcIndex picks which one is live now.
-      srcIndex: 0,
-      sources: [
-        {
-          name: "PBB Extra",
-          cam: "all",
-          mpdUrl: PBB_RELAY + "/pbb/all/manifest.mpd",
-          keyId: "b75e0a8315d0499b834c00a3d5b91935",
-          key: "39876c3c4f32a11dee56078febbb67dd"
-        },
-        {
-          name: "Extra Task",
-          cam: "ext",
-          mpdUrl: PBB_RELAY + "/pbb/ext/manifest.mpd",
-          keyId: "b750a40736a24e60b5a4f256208b92c5",
-          key: "af07292597f692726dcac2bd297ddf8e"
-        }
-      ],
-      // Mirrors sources[srcIndex]; startCamera keeps these in sync because
-      // PBBStream reads mpdUrl/keyId/key straight off the camera object.
-      mpdUrl: PBB_RELAY + "/pbb/all/manifest.mpd",
+      mpdUrl: PBB_EXTRA_PROXY,
       keyId: "b75e0a8315d0499b834c00a3d5b91935",
-      key: "39876c3c4f32a11dee56078febbb67dd",
-      cam: "all"
+      key: "39876c3c4f32a11dee56078febbb67dd"
     }
   ];
 
@@ -5248,22 +5212,6 @@ body.is-recording .wc-rec-btn,
 
   function startCamera(id) {
     clearCameraRetry(id);
-    var cam = (PBB_CAMERAS || []).filter(function (c) { return c.id === Number(id); })[0];
-    if (cam && cam.sources) {
-      var src = cam.sources[cam.srcIndex || 0];
-      cam.mpdUrl = src.mpdUrl;
-      cam.keyId = src.keyId;
-      cam.key = src.key;
-      cam.name = src.name;
-      cam.cam = src.cam;
-      var t = tile(id);
-      var label = t && $(".mv-label-text", t);
-      if (label) label.textContent = src.name;
-      var audioBtn = t && $(".mv-audio", t);
-      if (audioBtn) audioBtn.setAttribute("aria-label", "Toggle " + src.name + " audio");
-      var schedule = t && $(".mv-schedule-text", t);
-      if (schedule) schedule.textContent = src.name + " · live";
-    }
     showWaitingState(id, "Connecting");
     return playerFor(id).start(id).then(function () {
       var t = tile(id);
@@ -5286,38 +5234,6 @@ body.is-recording .wc-rec-btn,
     var p = players.get(id);
     if (p) return p.stop();
     return Promise.resolve();
-  }
-
-  /* The relay mints a session per stream and re-keys on rotation. When the
-   * ClearKey pair changes under a running player the AES key cached at start()
-   * goes stale, so poll the relay and restart only the affected camera. */
-  var streamKeyWatch = null;
-  function watchStreamKeys() {
-    if (streamKeyWatch) return;
-    streamKeyWatch = setInterval(function () {
-      [1, 2].forEach(function (id) {
-        var p = players.get(id);
-        if (!p || !p.running) return;
-        var cam = (PBB_CAMERAS || []).filter(function (c) { return c.id === id; })[0];
-        if (!cam) return;
-        var upstreamCam = cam.cam || (id === 1 ? "main" : "ext");
-        fetch(PBB_RELAY + "/api/" + upstreamCam, { cache: "no-store" })
-          .then(function (r) { return r.ok ? r.json() : null; })
-          .then(function (cfg) {
-            if (!cfg || !cfg.key) return;
-            if (cfg.kid === cam.keyId && cfg.key === cam.key) return;
-            cam.keyId = cfg.kid;
-            cam.key = cfg.key;
-            if (cam.sources) {
-              var src = cam.sources[cam.srcIndex || 0];
-              src.keyId = cfg.kid;
-              src.key = cfg.key;
-            }
-            startCamera(id);
-          })
-          .catch(function () {});
-      });
-    }, 60000);
   }
 
   var audioCtx = null;
@@ -5395,15 +5311,10 @@ body.is-recording .wc-rec-btn,
     });
 
     navButtons.forEach(function (b) {
-      var cam2 = (PBB_CAMERAS || []).filter(function (c) { return c.id === 2; })[0];
-      var srcAttr = b.getAttribute("data-src");
-      var srcOk = srcAttr === null || !cam2 || !cam2.sources ||
-        Number(srcAttr) === (cam2.srcIndex || 0);
-      b.classList.toggle("active", String(b.getAttribute("data-cam")) === String(view) && srcOk);
+      b.classList.toggle("active", String(b.getAttribute("data-cam")) === String(view));
     });
 
     var eq = effectiveQuality(visible.length);
-    watchStreamKeys();
     [1, 2].forEach(function (id) {
       if (visible.indexOf(id) >= 0) {
         var p = players.get(id);
@@ -6012,16 +5923,7 @@ body.is-recording .wc-rec-btn,
     navButtons.forEach(function (b) {
       b.addEventListener("click", function () {
         state.userInteracted = true;
-        var target = b.getAttribute("data-cam");
-        var srcAttr = b.getAttribute("data-src");
-        if (srcAttr !== null) {
-          var cam2 = (PBB_CAMERAS || []).filter(function (c) { return c.id === 2; })[0];
-          if (cam2 && cam2.sources && Number(srcAttr) !== (cam2.srcIndex || 0)) {
-            cam2.srcIndex = Number(srcAttr);
-            stopCamera(2);
-          }
-        }
-        applyView(target);
+        applyView(b.getAttribute("data-cam"));
       });
     });
 
@@ -6218,7 +6120,7 @@ body.is-recording .wc-rec-btn,
     nodes.forEach(function(el,i){ el.textContent = i===1 ? n+' watching' : String(n); });
   }
   function ping(){
-    fetch((window.PBB_RELAY||'')+'/api/viewers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})})
+    fetch('/api/viewers',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})})
       .then(function(r){return r.json();}).then(function(d){paint(d.count||1);}).catch(function(){});
   }
   ping();
@@ -6275,7 +6177,7 @@ body.is-recording .wc-rec-btn,
   var name=localStorage.getItem('gc_name')||('Guest '+Math.floor(100+Math.random()*900));localStorage.setItem('gc_name',name);
   function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
   function paint(msgs){list.innerHTML=(msgs||[]).map(function(m){return '<div class="gcMsg"><b>'+esc(m.name)+'</b>'+esc(m.text)+'<small>'+new Date(m.ts).toLocaleTimeString()+'</small></div>';}).join('');list.scrollTop=list.scrollHeight;}
-  function poll(){fetch((window.PBB_RELAY||'')+'/api/chat',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){paint(d.messages||[]);}).catch(function(){});}
+  function poll(){fetch('/api/chat',{cache:'no-store'}).then(function(r){return r.json();}).then(function(d){paint(d.messages||[]);}).catch(function(){});}
   poll();setInterval(poll,5000);
   fab.onclick=function(){panel.classList.toggle('open');if(panel.classList.contains('open'))poll();};
   var lastSend=0;
@@ -6283,7 +6185,7 @@ body.is-recording .wc-rec-btn,
     e.preventDefault();var text=input.value.trim();if(!text)return;
     var now=Date.now();if(now-lastSend<4000){hint.textContent='Wait 4 seconds before sending again.';return;}
     lastSend=now;hint.textContent='';
-    fetch((window.PBB_RELAY||'')+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,name:name,sid:sid})}).then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});}).then(function(x){
+    fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text,name:name,sid:sid})}).then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};});}).then(function(x){
       if(x.ok){input.value='';hint.textContent='';poll();}else{hint.textContent=x.d.error||'Could not send.';}
     }).catch(function(){hint.textContent='Could not send.';});
   };
