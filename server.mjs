@@ -85,6 +85,10 @@ function decodeToken(tokenB64, nonce) {
 const sessions = new Map(); // cam -> { dir, kid, key, expiresAt }
 const iwantFeeds = new Map(); // content id -> { url, segQuery, expiresAt, content }
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function fetchIwant(content) {
   const id = content || IWANT_CONTENT;
   const psid = randomUUID();
@@ -135,9 +139,11 @@ async function iwant(content, force) {
   const key = content || IWANT_CONTENT;
   const hit = iwantFeeds.get(key);
   if (!force && hit && Date.now() < hit.expiresAt) return hit;
-  const feed = await fetchIwant(key);
-  iwantFeeds.set(key, feed);
-  return feed;
+  const fresh = await fetchIwant(key);
+  const hit = iwantFeeds.get(key);
+  if (hit && hit.segQuery) fresh.segQuery = hit.segQuery; // segment token is longer-lived
+  iwantFeeds.set(key, fresh);
+  return fresh;
 }
 
 /* The signed query has to ride along on every segment request, not just the
@@ -148,6 +154,12 @@ async function iwantUpstream(content, relPath) {
     const feed = await iwant(content, attempt > 0);
     const signed = new URL(feed.url);
     let url, isManifest = relPath === "manifest.mpd";
+    // A forced refresh gives us a new manifest URL but not its segment token
+    // yet. Fetch the fresh MPD first so media/init requests never go upstream
+    // without the current hdntl query.
+    if (!isManifest && !feed.segQuery) {
+      await iwantUpstream(content, "manifest.mpd");
+    }
     if (isManifest) {
       url = feed.url;
     } else {
@@ -177,6 +189,12 @@ async function iwantUpstream(content, relPath) {
         status: res.status,
         headers: { "content-type": "application/dash+xml; charset=utf-8" },
       });
+    }
+    if (res.status === 502 || res.status === 503 || res.status === 504) {
+      lastErr = new Error(`iwant upstream ${res.status}`);
+      iwantFeeds.delete(content || IWANT_CONTENT);
+      if (attempt === 0) await delay(350);
+      continue;
     }
     if (res.status === 403 || res.status === 404) {
       lastErr = new Error(`iwant upstream ${res.status}`);
@@ -239,8 +257,12 @@ async function fetchSession(cam) {
   }
   const { kid, key } = decodeToken(desc.token, data.nonce);
   const dir = desc.endpoint.slice(0, desc.endpoint.lastIndexOf("/") + 1);
+  const setCookies = typeof res.headers.getSetCookie === "function"
+    ? res.headers.getSetCookie()
+    : [];
+  const cookie = setCookies.map((c) => c.split(";")[0]).join("; ");
   const ttlMs = Math.min(Number(data.expiresInSec || 3600) * 1000, 3 * 60 * 60 * 1000);
-  return { dir, kid, key, expiresAt: Date.now() + ttlMs * 0.8 };
+  return { dir, kid, key, cookie, expiresAt: Date.now() + ttlMs * 0.8 };
 }
 
 async function session(cam, force) {
@@ -270,6 +292,7 @@ async function upstream(cam, relPath) {
           origin: ORIGIN,
           referer: ORIGIN + "/",
           "user-agent": UA,
+          ...(s.cookie ? { cookie: s.cookie } : {}),
         },
       });
     } catch (e) {
@@ -404,6 +427,7 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, {
         cam,
         mpd: `/pbb/${cam}/manifest.mpd`,
+        endpoint: s.dir,
         kid: s.kid,
         key: s.key,
         expiresAt: s.expiresAt,
@@ -464,4 +488,12 @@ server.listen(PORT, () => {
   ]).then((r) => {
     for (const s of r) if (s.status === "rejected") console.log("warm:", s.reason.message);
   });
+
+  // Keep-alive: the iWant token lives 60s. Re-mint every 20s so a fresh
+  // signed URL is always waiting before the old one expires.
+  setInterval(function () {
+    iwant(IWANT_CONTENT, true).catch(function (e) {
+      console.log("iwant keepalive:", e.message);
+    });
+  }, 20000).unref();
 });
