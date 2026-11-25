@@ -4171,12 +4171,15 @@ body.is-recording .wc-rec-btn,
   global.PBB_MAIN_OFFLINE_ART = PBB_MAIN_OFFLINE_ART;
   global.PBB_EXTRA_OFFLINE_ART = PBB_EXTRA_OFFLINE_ART;
 
-  // Same origin when the page is served by server.mjs (port 8787); otherwise
-  // the relay on this machine. Pages serves static files only — the browser
-  // is allowed to reach http://127.0.0.1 even from an https origin.
-  var PBB_RELAY = (location.port === "8787" && /^https?:$/.test(location.protocol))
-    ? ""
-    : "http://127.0.0.1:8787";
+  // Use the relay only while the page is running locally. A public page must
+  // never call 127.0.0.1, because that triggers the browser's local-device
+  // access prompt and would point at a visitor's own computer.
+  var isLocalPage = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  var PBB_RELAY = isLocalPage
+    ? ((location.port === "8787" && /^https?:$/.test(location.protocol))
+      ? ""
+      : "http://127.0.0.1:8787")
+    : "";
   global.PBB_RELAY = PBB_RELAY;
 
   PBB_CAMERAS = [
